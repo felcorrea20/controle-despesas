@@ -3,7 +3,7 @@
 #include <string>
 #include <mysql.h> 
 
-using namespace std;
+#include "despesa.hpp"
 
 void limpaTela()
 {
@@ -17,15 +17,15 @@ short int opcaoEscolhidaMenu()
 	
 	short int opcao = 0;
 		
-	cout << " CONTROLE DE DESPESAS " << endl;
-	cout << " 1 - LANCAR " << endl;
-	cout << " 2 - VISUALIZAR " << endl;
-	cout << " 3 - ALTERAR " << endl;
-	cout << " 4 - DELETAR " << endl;
-	cout << " 5 - SAIR " << endl;
+	std::cout << " CONTROLE DE DESPESAS " << '\n';
+	std::cout << " 1 - LANCAR " << '\n';
+	std::cout << " 2 - VISUALIZAR " << '\n';
+	std::cout << " 3 - ALTERAR " << '\n';
+	std::cout << " 4 - DELETAR " << '\n';
+	std::cout << " 5 - SAIR " << '\n';
 	
-	cout << "Escolha uma opcao: ";
-	cin >> opcao;
+	std::cout << "Escolha uma opcao: ";
+	std::cin >> opcao;
 	
 	limpaTela();
 		
@@ -38,15 +38,15 @@ MYSQL *conectaBanco()
 
 	MYSQL *conexao = mysql_init(NULL);
 	if (conexao == NULL) {
-		cerr << "Erro ao iniciar MySQL: " << mysql_error(conexao) << endl;
+		std::cerr << "Erro ao iniciar MySQL: " << mysql_error(conexao) << '\n';
 		return NULL;
 	}
 
 	MYSQL *resultado = mysql_real_connect(
 		conexao,
 		"127.0.0.1",      
-		"root",           
-		"tchiulepe321", 
+		"despesas_app",           
+		"felipedespesa321", 
 		"controle_despesa",
 		3306,             
 		NULL,
@@ -54,7 +54,7 @@ MYSQL *conectaBanco()
 	);
 
 	if (resultado == NULL) {
-		cerr << "Erro ao conectar MySQL: " << mysql_error(conexao) << endl;
+		std::cerr << "Erro ao conectar MySQL: " << mysql_error(conexao) << '\n';
 		mysql_close(conexao);
 		return NULL;
 	}
@@ -63,56 +63,48 @@ MYSQL *conectaBanco()
 
 }
 
-void gravaNovaDespesa(MYSQL *conexao, int numero_despesa, string descricao, float valorTotal, short int parcelas, short int dia_limite_pagamento)
+void gravaNovaDespesa(MYSQL *conexao, despesa &nova_despesa)
 {
 
-	string query = "INSERT INTO despesas (numero_despesa, descricao, valor_a_pagar, parcela, dia_limite_pagamento) ";
-	short int parcelaAtual = 1;
-	float valorCadaParcela = valorTotal / parcelas;
-	
-	cout << (conexao == NULL) << " - " << numero_despesa << " - " << descricao << " - " << valorTotal << " - " << parcelas << " - " << dia_limite_pagamento << " - " << valorCadaParcela << endl;
+	std::string query = nova_despesa.retorna_insert_query();
 
-	// do {
-	// 	query += "VALUES " + (string) numero_despesa + ", ";
-	// 	query += descricao + ", ";
-	// 	query += (string) valorCadaParcela + ", ";
-	// 	query += (string) parcelaAtual + ", ";
-	// 	query += (string) dia_limite_pagamento + ";";
-
-	// } while (++parcelaAtual <= parcelas);
-
-	// if (conexao == NULL) {
-	// 	return ;
-	// }
+	int query_state = mysql_query(conexao, query.c_str());
+	if (query_state != 0)
+		std::cerr << "Erro ao executar a query: " << mysql_error(conexao) << '\n';
+	else
+		std::cout << "Nova despesa gravada com sucesso" << '\n';
 
 }
 
 void lancarNovaDespesa(MYSQL *conexao)
 {
 
-	int numero_despesa;
-	string descricao;
-	double valorTotal;
-	short int parcelas, dia_limite_pagamento;
+    std::uint16_t numero_despesa;
+	std::string descricao;
+	double valor_total;
+	std::uint16_t parcelas; 
+    std::uint16_t dia_limite_pagamento;
 	
-	cout << "LANCAMENTO DE DESPESA" << endl;
+	std::cout << "LANCAMENTO DE DESPESA" << '\n';
 	
-	cout << "Numero da despesa: ";
-	cin >> numero_despesa;
+	std::cout << "Numero da despesa: ";
+	std::cin >> numero_despesa;
 
-	cout << "Descricao: ";
-	cin >> descricao;
+	std::cout << "Descricao: ";
+	std::cin >> descricao;
 
-	cout << "Valor total a pagar: ";
-	cin >> valorTotal; 
+	std::cout << "Valor total a pagar: ";
+	std::cin >> valor_total; 
 
-	cout << "Quantidade de parcelas: ";
-	cin >> parcelas;
+	std::cout << "Quantidade de parcelas: ";
+	std::cin >> parcelas;
 
-	cout << "Dia limite para pagamento: ";
-	cin >> dia_limite_pagamento;
+	std::cout << "Dia limite para pagamento: ";
+	std::cin >> dia_limite_pagamento;
 
-	gravaNovaDespesa(conexao, numero_despesa, descricao, valorTotal, parcelas, dia_limite_pagamento);
+	despesa nova_despesa{numero_despesa, descricao, valor_total, parcelas, dia_limite_pagamento};
+
+	gravaNovaDespesa(conexao, nova_despesa);
 	
 }
 
@@ -129,29 +121,6 @@ void alterarDespesa()
 void deletarDespesa()
 {
 	
-}
-
-void criaTabelaDespesa(MYSQL *conexao)
-{
-
-	string query = "CREATE TABLE despesas (";
-	query += "id INT PRIMARY KEY AUTO_INCREMENT, ";
-	query += "numero_despesa INT NOT NULL, ";
-	query += "descricao VARCHAR(100) NOT NULL, ";
-	query += "valor_a_pagar DECIMAL(8,2) NOT NULL CHECK (valor_a_pagar > 0), ";
-	query += "parcela TINYINT NOT NULL CHECK (parcela > 0), ";
-	query += "dia_limite_pagamento TINYINT NOT NULL CHECK (dia_limite_pagamento BETWEEN 1 AND 31), ";
-	query += "is_parcela_paga BOOL DEFAULT FALSE, ";
-	query += "data_insercao DATE DEFAULT (CURRENT_DATE), ";
-	query += "UNIQUE (numero_despesa, parcela) )";
-
-	int query_state = mysql_query(conexao, query.c_str());
-	if (query_state != 0) {
-		cerr << "Erro ao executar a query: " << mysql_error(conexao) << endl;
-	} else {
-		cout << "Tabela 'despesas' criada com sucesso" << endl;
-	}
-
 }
 
 int main(int argc, char** argv)
@@ -178,13 +147,10 @@ int main(int argc, char** argv)
 		deletarDespesa();
 		break;
 	case 5:
-		cout << "Programa sendo finalizado..." << endl;
+		std::cout << "Programa sendo finalizado..." << '\n';
 		break;
-	// case 6:
-	// 	criaTabelaDespesa(conexao);
-	// 	break;
 	default:
-		cout << "Opcao inexistente..." << endl;
+		std::cout << "Opcao inexistente..." << '\n';
 		break;
 	}
 
