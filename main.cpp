@@ -7,7 +7,7 @@
 
 void limpaTela()
 {
-	if (system("CLS")) system("clear"); // horrivel
+	if (system("CLS")) system("clear");
 }
 
 short int opcaoEscolhidaMenu()
@@ -91,7 +91,8 @@ void lancarNovaDespesa(MYSQL *conexao)
 	std::cin >> numero_despesa;
 
 	std::cout << "Descricao: ";
-	std::cin >> descricao;
+	std::cin.ignore();
+	std::getline(std::cin, descricao);
 
 	std::cout << "Valor total a pagar: ";
 	std::cin >> valor_total; 
